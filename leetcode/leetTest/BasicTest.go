@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	q4()
+	q5()
 }
 
 func q3() {
@@ -23,9 +23,15 @@ func q3() {
 }
 
 func q4() {
-	var num1 [3]int = [...]int{1, 2, 3,}
+	var num1 [3]int = [...]int{1, 2, 3}
 	var num2 = [...]int{1, 4, 5, 7, 9}
 
 	i := leet.FindMedianSortedArrays(num1[:], num2[:])
 	fmt.Println(i)
+}
+
+func q5() {
+	s := "abcddce"
+	s2 := leet.LongestPalindrome(s)
+	fmt.Println(s2)
 }
