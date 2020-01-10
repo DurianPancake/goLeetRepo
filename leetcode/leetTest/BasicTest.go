@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	q5()
+	q6()
 }
 
 func q3() {
@@ -34,4 +34,25 @@ func q5() {
 	s := "abcddce"
 	s2 := leet.LongestPalindrome(s)
 	fmt.Println(s2)
+}
+
+func q6() {
+	s := "LEETCODEISHIRING"
+	result := map[int]string{3: "LCIRETOESIIGEDHN", 4: "LDREOEIIECIHNTSG"}
+	var b bool
+	for k, v := range result {
+		convert := leet.Convert(s, k)
+		if b = convert != v; b {
+			fmt.Println(k, ":", v, "my answer :", convert)
+		}
+	}
+	if !b {
+		fmt.Println("ok")
+	}
+}
+
+func q6a() {
+	s := "ABCDE"
+	convert := leet.Convert(s, 4)
+	fmt.Println(convert)
 }
