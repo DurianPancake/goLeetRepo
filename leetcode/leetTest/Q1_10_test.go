@@ -3,10 +3,16 @@ package main
 import (
 	"fmt"
 	leet "goSecond/leetcode"
+	"testing"
 )
 
-func main() {
-	q6()
+const (
+	intMax = int(^uint32(0) >> 1)
+	intMin = ^intMax
+)
+
+func TestBasic(t *testing.T) {
+	q8()
 }
 
 func q3() {
@@ -55,4 +61,14 @@ func q6a() {
 	s := "ABCDE"
 	convert := leet.Convert(s, 4)
 	fmt.Println(convert)
+}
+
+func q7() {
+	i := 123456789
+	fmt.Println(leet.Q7Reverse(i))
+}
+
+func q8() {
+	i := leet.Q8MyAtoi("   343//")
+	fmt.Println(i)
 }
