@@ -12,7 +12,7 @@ const (
 )
 
 func TestBasic(t *testing.T) {
-	q8()
+	q9()
 }
 
 func q3() {
@@ -71,4 +71,18 @@ func q7() {
 func q8() {
 	i := leet.Q8MyAtoi("   343//")
 	fmt.Println(i)
+}
+
+func q9() {
+	resultMap := map[int]bool{12321: true, 4: true, -1: false, 3143: false}
+	var b bool
+	for k, v := range resultMap {
+		result := leet.Q9IsPalindrome(k)
+		if result != v {
+			fmt.Println(k, ":", v, "my answer :", result)
+		}
+	}
+	if !b {
+		fmt.Println("ok")
+	}
 }
