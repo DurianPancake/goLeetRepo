@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	leet "goSecond/leetcode"
+	leet "goSecond/leetcode/q1_20"
 	"testing"
 )
 
@@ -12,7 +12,7 @@ const (
 )
 
 func TestBasic(t *testing.T) {
-	q9()
+	q10()
 }
 
 func q3() {
@@ -85,4 +85,8 @@ func q9() {
 	if !b {
 		fmt.Println("ok")
 	}
+}
+
+func q10() {
+	leet.Q10IsMatch("", "")
 }
