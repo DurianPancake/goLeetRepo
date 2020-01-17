@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"goSecond/leetcode/extra"
 	leet "goSecond/leetcode/q1_20"
 	"testing"
 )
@@ -12,7 +13,9 @@ const (
 )
 
 func TestBasic(t *testing.T) {
-	q10()
+	qkth()
+	//gcd := getGcd(40, 30)
+	//fmt.Println(gcd)
 }
 
 func q3() {
@@ -89,4 +92,9 @@ func q9() {
 
 func q10() {
 	leet.Q10IsMatch("", "")
+}
+
+func qkth() {
+	number := extra.NthUglyNumber(10, 2, 3, 4)
+	fmt.Println(number)
 }

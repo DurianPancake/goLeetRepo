@@ -24,3 +24,7 @@ func Q10IsMatch(s string, p string) bool {
 	//}
 	return false
 }
+
+func test(nums []int) {
+
+}
