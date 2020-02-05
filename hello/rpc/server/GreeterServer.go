@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
-	pb "goFirst/role/api/rpc/proto"
+	pb "goSecond/hello/rpc/proto"
+
+	//pb "goFirst/role/api/rpc/proto"
 	//pb2 "goSecond/hello/rpc/proto"
 )
 
