@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	srcFile = "e://abc/guliang.jpg"
+	srcFile = "e://abc/a.txt"
 )
 
 func TestRenew(t *testing.T) {
