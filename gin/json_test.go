@@ -3,6 +3,7 @@ package mygin
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"goSecond/gin/model"
 	"log"
 	"testing"
 )
@@ -48,7 +49,9 @@ func TestReturnJSON(t *testing.T) {
 		fullPath := "请求路径: " + context.FullPath()
 		fmt.Println(fullPath)
 
+		resp := model.Success("ok", fullPath)
+		context.JSON(200, resp)
 	})
 
-	engine.Run()
+	engine.Run(":8091")
 }
