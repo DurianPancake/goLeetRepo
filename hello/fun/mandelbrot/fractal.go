@@ -14,7 +14,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func draw(w io.Writer) {
-	const size = 10000 // 大小
+	const size = 10000 // 画布大小，越大代表图形越精细，过大会有溢出问题
 	rec := image.Rect(0, 0, size, size)
 	img := image.NewRGBA(rec)
 
