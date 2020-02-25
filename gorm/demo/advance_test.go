@@ -10,13 +10,15 @@ import (
 
 // initial database connection
 func InitDb() *gorm.DB {
-	db, err := gorm.Open("mysql", "root:easy@tcp(localhost:3306)/gorm_demo?charset=utf8&parseTime=True")
+	db, err := gorm.Open("mysql",
+		"root:easy@tcp(localhost:3306)/gorm_demo?charset=utf8&parseTime=True&loc=Local")
 	if err != nil {
 		log.Fatal(err)
 		return nil
 	}
 	// 取消复数形式的表名
 	db.SingularTable(true)
+	db.AutoMigrate(&model.User{}, &model.Address{}, &model.CreditCard{}, &model.Email{}, &model.Language{})
 	return db
 }
 
