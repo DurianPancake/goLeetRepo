@@ -50,6 +50,14 @@ func TestReI2(t *testing.T) {
 
 func GetMessage(input interface{}) {
 	getType := reflect.TypeOf(input)
+	person := Person{
+		Name: "",
+		Age:  0,
+		Sex:  "",
+	}
+	t := reflect.TypeOf(person)
+	fmt.Println("name:", t.Name())
+	fmt.Println("name:", t.Kind())
 	fmt.Println("get Type is :", getType.Name()) // Person
 	fmt.Println("get Kind is :", getType.Kind()) // struct
 
