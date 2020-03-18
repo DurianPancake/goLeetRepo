@@ -102,7 +102,7 @@ func getStackGroup(from string) *model.StackGroup {
 
 		case bracket:
 			// 找到括号
-			nextCursor := lastRuneIndex(from, ')') + 1
+			nextCursor := model.FindMatchBracketIndex(from, cursor) + 1
 			subStr := string(runes[cursor+1 : nextCursor-1])
 			fmt.Println(subStr)
 			group := getStackGroup(subStr)
@@ -125,41 +125,65 @@ func generateJson(logicalUnit model.LogicalGroup) string {
 	return ""
 }
 
-// 中文字符索引
-func lastRuneIndex(text string, char rune) int {
-	runes := []rune(text)
-	for i := len(runes) - 1; i >= 0; i-- {
-		if runes[i] == char {
-			return i
-		}
-	}
-	return -1
-}
-
 // 生成对象
 // 优先级：组 > ! > && > ||
 func newLogicalGroupByStacks(group *model.StackGroup) *model.LogicalGroup {
 
 	// 初始化
 	current := new(model.LogicalGroup)
-	subGroups := make([]model.LogicalGroup, 0)
-	_ = make([]model.Unit, 0)
+	subUnits := make([]model.Unit, 0)
 
 	stacks := group.Stacks
-	// 序号到优先级的映射字典
-	sortMap := make(map[int]int, 0)
-	// 遍历时排序
-	for i, stack := range stacks {
-		sortMap[i] = stack.Kind
+	// 最简情况
+	if len(stacks) == 1 {
+		if stacks[0].Kind == 1 {
+			subUnits = append(subUnits, stacks[0].Unit)
+			current.Units = subUnits
+			return current
+		} else if stacks[0].Kind == 2 {
+			return newLogicalGroupByStacks(&stacks[0].StackGroup)
+		}
+		panic("expression error")
 	}
 
+	mergeMap := make(map[int]model.LogicalStack, 0)
 	for i, stack := range stacks {
-		if stack.Kind == 2 {
-			delete(sortMap, i)
-			logicalGroup := newLogicalGroupByStacks(&stack.StackGroup)
-			subGroups = append(subGroups, *logicalGroup)
+		mergeMap[i] = stack
+	}
+
+	subGroups := make([]model.LogicalGroup, 0)
+	// 获取运算符
+	symbolList := group.GetPreferenceList()
+	symbol, pos, all := getSameLevelSymbols(symbolList)
+	// TODO continue
+
+	for len(symbolList) > 1 {
+		symbol := symbolList[0]
+		stack := symbol.Stack
+		symIndex := symbol.Index
+		switch stack.Symbol {
+		case "!":
+			nextIndex := symIndex + 1
+			if len(stacks) <= nextIndex {
+				panic(fmt.Sprintf("wrong operator: %s", stack.Symbol))
+			}
+			logicalStack := stacks[nextIndex]
+			if logicalStack.Kind == 0 {
+				panic(fmt.Sprintf("wrong operator: %s", stack.Symbol))
+			}
 		}
 	}
 
 	return current
+}
+
+func getSameLevelSymbols(list []model.Preference) (symbol string, nextPos int, all bool) {
+	stack := list[0].Stack
+	symbol = stack.Symbol
+	for i, preference := range list {
+		if preference.Stack.Symbol != symbol {
+			return symbol, i, false
+		}
+	}
+	return symbol, len(list), true
 }

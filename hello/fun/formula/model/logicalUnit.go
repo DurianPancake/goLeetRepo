@@ -89,3 +89,28 @@ func MatchOperate(text string, index int) Operator {
 	}
 	return chosenOp
 }
+
+// 寻找匹配右括号的索引位置
+// ((() ())())
+func FindMatchBracketIndex(text string, index int) int {
+
+	operate := MatchOperate(text, index)
+	if operate.Type != bracket || operate.Symbol != "(" {
+		return -1
+	}
+	//
+	count := 1
+	runes := []rune(text)
+	for i := index + 1; i < len(runes); i++ {
+		if runes[i] == '(' {
+			count += 1
+		}
+		if runes[i] == ')' {
+			count -= 1
+			if count == 0 {
+				return i
+			}
+		}
+	}
+	return -1
+}
