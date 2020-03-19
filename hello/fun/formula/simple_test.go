@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"goSecond/hello/fun/formula/utils"
 	"testing"
+	"time"
 )
 
 var (
@@ -21,6 +22,8 @@ func TestUnix(t *testing.T) {
 }
 
 func TestGen(t *testing.T) {
-	condition, _ := utils.GenerateCondition(f5)
+	start := time.Now().UnixNano()
+	condition, _ := utils.GenerateCondition(f4)
+	fmt.Println("耗时：", time.Now().UnixNano()-start, "ns")
 	fmt.Println("condition:", condition)
 }

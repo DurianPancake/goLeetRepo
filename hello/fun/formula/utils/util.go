@@ -199,9 +199,7 @@ func mergeStack(prefList *List, symbolList []Preference) *LogicalGroup {
 			subUnits := make([]Unit, 0)
 			subGroups := make([]LogicalGroup, 0)
 			logicUnit := LogicalGroup{
-				Operator:     Operator{Symbol: symbol},
-				Units:        subUnits,
-				LogicalUnits: subGroups,
+				Operator: Operator{Symbol: symbol},
 			}
 
 			switch symbol {
@@ -253,24 +251,19 @@ func mergeStack(prefList *List, symbolList []Preference) *LogicalGroup {
 					}
 				}
 				// 添加方法
-				offset := minIndex - 1
-				times := len(orders) + 1
-				if minIndex == 0 {
-					offset = minIndex + 1
-					times -= 1
-				}
-				addSub(prefList, &subGroups, &subUnits, offset, times)
+				alternativePos := minIndex - 1
+				addSub(prefList, &subGroups, &subUnits, alternativePos, len(orders)+1)
 				logicUnit.Units = subUnits
 				logicUnit.LogicalUnits = subGroups
 				// 删除和添加
 				for i := 0; i < len(orders)*2+1; i++ {
-					prefList.RemoveAtIndex(minIndex - 1)
+					prefList.RemoveAtIndex(alternativePos)
 				}
 				prefList.Insert(Preference{
-					Index: minIndex - 1,
+					Index: alternativePos,
 					Kind:  1,
 					Group: logicUnit,
-				}, minIndex)
+				}, alternativePos)
 			default:
 			}
 		}

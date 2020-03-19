@@ -46,6 +46,7 @@ func (list *List) Append(data Object) {
 	}
 }
 
+// 在index处新增，原Index位置的元素后移
 func (list *List) Insert(data Object, index int) {
 	list.size++
 	if index < 0 {
@@ -61,14 +62,17 @@ func (list *List) Insert(data Object, index int) {
 			list.headNode = node
 			return
 		}
+		if index == 0 {
+			node.Next, list.headNode = pre, node
+			return
+		}
 		count := 0
 		for count < index-1 {
 			pre = pre.Next
 			count++
 		}
 		// 此时pre指向index-1
-		node.Next = pre.Next
-		pre.Next = node
+		node.Next, pre.Next = pre.Next, node
 	}
 }
 
