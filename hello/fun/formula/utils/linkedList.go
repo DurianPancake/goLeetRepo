@@ -54,27 +54,70 @@ func (list *List) Insert(data Object, index int) {
 		list.Append(data)
 	} else {
 		pre := list.headNode
+		node := &Node{
+			Data: data,
+		}
+		if pre == nil {
+			list.headNode = node
+			return
+		}
 		count := 0
 		for count < index-1 {
 			pre = pre.Next
 			count++
 		}
 		// 此时pre指向index-1
-		node := &Node{
-			Data: data,
-		}
-		node.Next, pre.Next = pre.Next, node
+		node.Next = pre.Next
+		pre.Next = node
 	}
+}
+
+func (list *List) Remove(data Object) {
+	list.size--
+	pre := list.headNode
+	if pre.Data == data {
+		list.headNode = pre.Next
+	} else {
+		for pre.Next != nil {
+			if pre.Next.Data == data {
+				pre.Next = pre.Next.Next
+			}
+		}
+	}
+}
+
+func (list *List) RemoveAtIndex(index int) {
+	list.size--
+	pre := list.headNode
+	if index <= 0 {
+		list.headNode = pre.Next
+	} else if index > list.size {
+		return
+	} else {
+		count := 0
+		for count != (index-1) && pre.Next != nil {
+			count++
+			pre = pre.Next
+		}
+		pre.Next = pre.Next.Next
+	}
+}
+
+func (list *List) get(index int) *Node {
+	if index < 0 || index > list.size {
+		panic("over limit")
+	}
+	count := 0
+	cur := list.Head()
+	for count < index {
+		cur = cur.Next
+		count++
+	}
+	return cur
 }
 
 func (list *List) Head() *Node {
 	return list.headNode
 }
 
-func (node *Node) HasNext() bool {
-	return node.Next != nil
-}
-
-func (node *Node) getNext() *Node {
-	return node.Next
-}
+////////////// Node /////////////////

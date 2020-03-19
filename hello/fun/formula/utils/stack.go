@@ -1,6 +1,4 @@
-package model
-
-import "goSecond/hello/fun/formula/utils"
+package utils
 
 // 解析时运算栈
 type LogicalStack struct {
@@ -17,21 +15,23 @@ type StackGroup struct {
 
 type Preference struct {
 	Index int
+	Kind  int // 0\1 表示Stack Group
 	Stack LogicalStack
+	Group LogicalGroup
 }
 
 // 获取优先级排序列表
 // 只纪录有逻辑运算符
 func (sg *StackGroup) GetPreferenceList() []Preference {
 
-	list := new(utils.List)
+	list := new(List)
 	stacks := sg.Stacks
 	for i, stack := range stacks {
 		if stack.Kind != 0 {
 			continue
 		}
 		index := 0
-		for node := list.Head(); node.HasNext(); index++ {
+		for node := list.Head(); node != nil; index++ {
 			preference := node.Data.(Preference)
 			if preference.Stack.compareTo(&stack) > 0 {
 				node = node.Next
@@ -47,8 +47,9 @@ func (sg *StackGroup) GetPreferenceList() []Preference {
 	}
 	ps := make([]Preference, list.Length())
 	index := 0
-	for node := list.Head(); node.HasNext(); index++ {
+	for node := list.Head(); node != nil; index++ {
 		ps[index] = node.Data.(Preference)
+		node = node.Next
 	}
 	return ps
 }

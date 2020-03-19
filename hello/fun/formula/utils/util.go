@@ -1,63 +1,54 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
-	"goSecond/hello/fun/formula/model"
 	"strings"
-)
-
-const (
-	base    = "base"
-	logic   = "logic"
-	bracket = "bracket"
 )
 
 //
 func GenerateCondition(from string) (json string, err error) {
 
-	//TODO 括号校验
+	//TODO 1.括号校验
 
-	// 预处理
+	// 2.预处理
 	from = strings.ReplaceAll(from, " ", "")
 	fmt.Println(from)
 
-	// 生成对象
+	// 3.生成对象
 	logicalUnit, err := generateLogicalGroupFromText(from)
-
-	//TODO 生成目标表达式字符串
 	if err != nil {
 		return "", err
 	}
-	return generateJson(logicalUnit), nil
+	// 4.生成JSON字符串
+	return generateJson(logicalUnit)
 }
 
 // 生成逻辑表达式对象
 // 先递归的解析为栈组
 // 在同一层级的栈组中根据存在的优先级生成对象
 // 再递归的返还生成的逻辑组对象到最高层
-func generateLogicalGroupFromText(from string) (model.LogicalGroup, error) {
+func generateLogicalGroupFromText(from string) (LogicalGroup, error) {
 
 	// 解析为栈组
 	stackGroup := getStackGroup(from)
 	fmt.Println(stackGroup.Stacks)
-	defer func() {
 
-	}()
 	// 生成对象
-	newLogicalGroupByStacks(stackGroup)
-	return model.LogicalGroup{}, nil
+	logicalGroup := newLogicalGroupByStacks(stackGroup)
+	return *logicalGroup, nil
 }
 
 // 生成栈组
-func getStackGroup(from string) *model.StackGroup {
+func getStackGroup(from string) *StackGroup {
 
-	currentGroup := new(model.StackGroup)
-	stacks := make([]model.LogicalStack, 0)
+	currentGroup := new(StackGroup)
+	stacks := make([]LogicalStack, 0)
 	runes := []rune(from)
 	cursor, valueStartCursor := 0, 0
 	for cursor < len(runes) {
-		operate := model.MatchOperate(from, cursor)
-		if operate == model.Null {
+		operate := MatchOperate(from, cursor)
+		if operate == Null {
 			cursor++
 			continue
 		}
@@ -71,45 +62,45 @@ func getStackGroup(from string) *model.StackGroup {
 			valueIndex := cursor + len(operate.Symbol)
 			var nextCursor int
 			for nextCursor = valueIndex; nextCursor < len(runes); nextCursor++ {
-				op := model.MatchOperate(from, nextCursor)
-				if op != model.Null {
+				op := MatchOperate(from, nextCursor)
+				if op != Null {
 					break
 				}
 			}
 			value := string(runes[valueIndex:nextCursor])
-			stacks = append(stacks, model.LogicalStack{
+			stacks = append(stacks, LogicalStack{
 				Kind:     1,
-				Operator: model.Operator{},
-				Unit: model.Unit{
+				Operator: Operator{},
+				Unit: Unit{
 					Field:   field,
 					Operate: operate,
 					Value:   value,
 				},
-				StackGroup: model.StackGroup{},
+				StackGroup: StackGroup{},
 			})
 			cursor, valueStartCursor = nextCursor, nextCursor
 
 		case logic:
 			// 找到逻辑运算符
 			cursor += len(operate.Symbol)
-			stacks = append(stacks, model.LogicalStack{
+			stacks = append(stacks, LogicalStack{
 				Kind:       0,
 				Operator:   operate,
-				Unit:       model.Unit{},
-				StackGroup: model.StackGroup{},
+				Unit:       Unit{},
+				StackGroup: StackGroup{},
 			})
 			valueStartCursor = cursor
 
 		case bracket:
 			// 找到括号
-			nextCursor := model.FindMatchBracketIndex(from, cursor) + 1
+			nextCursor := FindMatchBracketIndex(from, cursor) + 1
 			subStr := string(runes[cursor+1 : nextCursor-1])
 			fmt.Println(subStr)
 			group := getStackGroup(subStr)
-			stacks = append(stacks, model.LogicalStack{
+			stacks = append(stacks, LogicalStack{
 				Kind:       2,
-				Operator:   model.Operator{},
-				Unit:       model.Unit{},
+				Operator:   Operator{},
+				Unit:       Unit{},
 				StackGroup: *group,
 			})
 			cursor, valueStartCursor = nextCursor, nextCursor
@@ -120,23 +111,23 @@ func getStackGroup(from string) *model.StackGroup {
 }
 
 // 生成JSON表达式
-func generateJson(logicalUnit model.LogicalGroup) string {
-
-	return ""
+// TODO 暂定生成
+func generateJson(logicalUnit LogicalGroup) (string, error) {
+	marshal, err := json.Marshal(logicalUnit)
+	return string(marshal), err
 }
 
 // 生成对象
 // 优先级：组 > ! > && > ||
-func newLogicalGroupByStacks(group *model.StackGroup) *model.LogicalGroup {
-
-	// 初始化
-	current := new(model.LogicalGroup)
-	subUnits := make([]model.Unit, 0)
+func newLogicalGroupByStacks(group *StackGroup) *LogicalGroup {
 
 	stacks := group.Stacks
 	// 最简情况
 	if len(stacks) == 1 {
 		if stacks[0].Kind == 1 {
+			// 初始化
+			current := new(LogicalGroup)
+			subUnits := make([]Unit, 0)
 			subUnits = append(subUnits, stacks[0].Unit)
 			current.Units = subUnits
 			return current
@@ -145,39 +136,176 @@ func newLogicalGroupByStacks(group *model.StackGroup) *model.LogicalGroup {
 		}
 		panic("expression error")
 	}
-
-	mergeMap := make(map[int]model.LogicalStack, 0)
-	for i, stack := range stacks {
-		mergeMap[i] = stack
-	}
-
-	subGroups := make([]model.LogicalGroup, 0)
+	// 封装一层栈组，因为栈的入栈顺序有意义
+	prefList := getPreListFromStacks(stacks)
 	// 获取运算符
 	symbolList := group.GetPreferenceList()
-	symbol, pos, all := getSameLevelSymbols(symbolList)
-	// TODO continue
+	// 根据栈组，排好序的符号列表合并栈到一条以生成逻辑运算对象
+	return mergeStack(prefList, symbolList)
+}
 
-	for len(symbolList) > 1 {
-		symbol := symbolList[0]
-		stack := symbol.Stack
-		symIndex := symbol.Index
-		switch stack.Symbol {
-		case "!":
-			nextIndex := symIndex + 1
-			if len(stacks) <= nextIndex {
-				panic(fmt.Sprintf("wrong operator: %s", stack.Symbol))
+// 合并栈组（StackGroup）为逻辑计算组（LogicalGroup）
+// 根据运算符列表，找出同一类型的运算符，它们具有相同的优先级
+// 如果这些运算符在计算位置上连续，连续的部分可以合成一个组，不连续的部分自成一组
+// 运算符运算会消耗基本单元（Unit）和组（StackGroup）和它自身（Symbol）
+// 因此链表会因为计算不断产生新组（LogicalGroup），统一用Preference封装起来
+// 同时栈组（StackGroup）也会不断减少
+// 如果有下一优先级的运算符列表，重复以上过程
+// 当运算符消耗完毕时，计算式只会留下一组（LogicalGroup）将其返回
+func mergeStack(prefList *List, symbolList []Preference) *LogicalGroup {
+
+	// 同类型计算符
+	for prefList.Length() != 1 {
+		symbol, pos, all := getSameLevelSymbols(symbolList)
+		samePos := symbolList[0:pos]
+		if !all {
+			symbolList = symbolList[pos:]
+		}
+
+		prefMap := make(map[int]Preference, 0)
+		for _, po := range samePos {
+			prefMap[po.Index] = po
+		}
+		// 分组
+		// map[分组][序号集]
+		seriesGroup := make(map[int][]int, 0)
+		lastIndex := 0
+		for _, symbol := range samePos {
+			orders := seriesGroup[lastIndex]
+			if orders == nil {
+				orders = make([]int, 0)
+				seriesGroup[lastIndex] = orders
 			}
-			logicalStack := stacks[nextIndex]
-			if logicalStack.Kind == 0 {
-				panic(fmt.Sprintf("wrong operator: %s", stack.Symbol))
+			bigOrder := len(orders) - 1
+			if bigOrder < 0 {
+				orders = append(orders, symbol.Index)
+				seriesGroup[lastIndex] = orders
+				continue
+			}
+			isFarAway := orders[bigOrder]-symbol.Index > 2
+			if !isFarAway {
+				orders = append(orders, symbol.Index)
+				seriesGroup[lastIndex] = orders
+			} else if isFarAway {
+				lastIndex++
+				nextGroup := make([]int, 0)
+				nextGroup = append(nextGroup, symbol.Index)
+				seriesGroup[lastIndex] = nextGroup
+			}
+		}
+		// 根据运算规则合并产生新组，一个组内为同一类型
+		for _, orders := range seriesGroup {
+			//
+			subUnits := make([]Unit, 0)
+			subGroups := make([]LogicalGroup, 0)
+			logicUnit := LogicalGroup{
+				Operator:     Operator{Symbol: symbol},
+				Units:        subUnits,
+				LogicalUnits: subGroups,
+			}
+
+			switch symbol {
+			case "!":
+				// 非运算只取order后一位
+				// 一个组的非运算涉及到的stack个数为 len(order) * 2个
+				minIndex := prefList.Length()
+				for _, order := range orders {
+					// 拿到下一个栈帧
+					cur := prefList.Head()
+					index := 0
+					for cur.Data.(Preference).Index != order {
+						cur = cur.Next
+						index++
+					}
+					if index < minIndex {
+						minIndex = index
+					}
+				}
+				// 添加方法
+				addSub(prefList, &subGroups, &subUnits, minIndex+1, len(orders))
+				logicUnit.Units = subUnits
+				logicUnit.LogicalUnits = subGroups
+				// 删除和添加
+				for i := 0; i < len(orders)*2; i++ {
+					prefList.RemoveAtIndex(minIndex)
+				}
+				prefList.Insert(Preference{
+					Index: minIndex,
+					Kind:  1,
+					Group: logicUnit,
+				}, minIndex)
+			case "&&":
+				fallthrough
+			case "||":
+				// 与运算和或运算需要取前一位和后一位
+				// 一个组的非运算涉及到的stack个数为 len(order)*2 + 1个
+				minIndex := prefList.Length()
+				for _, order := range orders {
+					// 拿到下一个栈帧
+					cur := prefList.Head()
+					index := 0
+					for cur.Data.(Preference).Index != order {
+						cur = cur.Next
+						index++
+					}
+					if index < minIndex {
+						minIndex = index
+					}
+				}
+				// 添加方法
+				offset := minIndex - 1
+				times := len(orders) + 1
+				if minIndex == 0 {
+					offset = minIndex + 1
+					times -= 1
+				}
+				addSub(prefList, &subGroups, &subUnits, offset, times)
+				logicUnit.Units = subUnits
+				logicUnit.LogicalUnits = subGroups
+				// 删除和添加
+				for i := 0; i < len(orders)*2+1; i++ {
+					prefList.RemoveAtIndex(minIndex - 1)
+				}
+				prefList.Insert(Preference{
+					Index: minIndex - 1,
+					Kind:  1,
+					Group: logicUnit,
+				}, minIndex)
+			default:
 			}
 		}
 	}
-
-	return current
+	final := prefList.headNode.Data.(Preference).Group
+	return &final
 }
 
-func getSameLevelSymbols(list []model.Preference) (symbol string, nextPos int, all bool) {
+// 添加元素
+func addSub(prefList *List, groups *[]LogicalGroup, units *[]Unit, index int, times int) {
+	cur := prefList.get(index)
+	for i := 0; i < times; i++ {
+		stackPref := cur.Data.(Preference)
+		if stackPref.Kind == 0 {
+			if stackPref.Stack.Kind == 0 {
+				panic(fmt.Sprintf("expression error"))
+			} else if stackPref.Stack.Kind == 2 {
+				group := stackPref.Stack.StackGroup
+				subPrefs := group.GetPreferenceList()
+				// 内层退出条件
+				*groups = append(*groups, *mergeStack(getPreListFromStacks(group.Stacks), subPrefs))
+			} else {
+				*units = append(*units, stackPref.Stack.Unit)
+			}
+		} else if stackPref.Kind == 1 {
+			*groups = append(*groups, stackPref.Group)
+		}
+		if i < times-1 {
+			cur = cur.Next.Next
+		}
+	}
+}
+
+// 获取同优先级符号集合
+func getSameLevelSymbols(list []Preference) (symbol string, nextPos int, all bool) {
 	stack := list[0].Stack
 	symbol = stack.Symbol
 	for i, preference := range list {
@@ -186,4 +314,16 @@ func getSameLevelSymbols(list []model.Preference) (symbol string, nextPos int, a
 		}
 	}
 	return symbol, len(list), true
+}
+
+func getPreListFromStacks(stacks []LogicalStack) *List {
+	prefList := new(List)
+	for i, stack := range stacks {
+		prefList.Append(Preference{
+			Index: i,
+			Kind:  0,
+			Stack: stack,
+		})
+	}
+	return prefList
 }
