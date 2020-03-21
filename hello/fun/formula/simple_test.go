@@ -15,12 +15,6 @@ var (
 	f5 = "A7YWFGS=9||((JFKGL>4|| 胥志龙=男)&&(女朋友=无))"
 )
 
-func TestUnix(t *testing.T) {
-	s := "sdfa"
-	operate := utils.MatchOperate(s, 2)
-	fmt.Println(operate == utils.Null)
-}
-
 func TestGen(t *testing.T) {
 	start := time.Now().UnixNano()
 	condition, _ := utils.GenerateCondition(f5)

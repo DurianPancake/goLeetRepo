@@ -58,7 +58,7 @@ func getStackGroup(from string) *StackGroup {
 	runes := []rune(from)
 	cursor, valueStartCursor := 0, 0
 	for cursor < len(runes) {
-		operate := MatchOperate(from, cursor)
+		operate := matchOperate(from, cursor)
 		if operate == Null {
 			cursor++
 			continue
@@ -73,7 +73,7 @@ func getStackGroup(from string) *StackGroup {
 			valueIndex := cursor + len(operate.Symbol)
 			var nextCursor int
 			for nextCursor = valueIndex; nextCursor < len(runes); nextCursor++ {
-				op := MatchOperate(from, nextCursor)
+				op := matchOperate(from, nextCursor)
 				if op != Null {
 					break
 				}
@@ -104,7 +104,7 @@ func getStackGroup(from string) *StackGroup {
 
 		case bracket:
 			// 找到括号
-			nextCursor := FindMatchBracketIndex(from, cursor) + 1
+			nextCursor := findMatchBracketIndex(from, cursor) + 1
 			subStr := string(runes[cursor+1 : nextCursor-1])
 			fmt.Println(subStr)
 			group := getStackGroup(subStr)

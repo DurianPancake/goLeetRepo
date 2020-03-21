@@ -70,7 +70,7 @@ var (
 
 // 最大匹配原则，尽可能长的匹配字段或符号
 // 获取每个匹配的偏移量，选取偏移量最大的
-func MatchOperate(text string, index int) Operator {
+func matchOperate(text string, index int) Operator {
 
 	runes := []rune(text)
 	maxOffset := 0
@@ -92,9 +92,9 @@ func MatchOperate(text string, index int) Operator {
 
 // 寻找匹配右括号的索引位置
 // ((() ())())
-func FindMatchBracketIndex(text string, index int) int {
+func findMatchBracketIndex(text string, index int) int {
 
-	operate := MatchOperate(text, index)
+	operate := matchOperate(text, index)
 	if operate.Type != bracket || operate.Symbol != "(" {
 		return -1
 	}
