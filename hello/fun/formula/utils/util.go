@@ -9,8 +9,11 @@ import (
 //
 func GenerateCondition(from string) (json string, err error) {
 
-	//TODO 1.括号校验
-
+	//1.校验
+	err = validateText(from)
+	if err != nil {
+		return "", err
+	}
 	// 2.预处理
 	from = strings.ReplaceAll(from, " ", "")
 	fmt.Println(from)
@@ -24,13 +27,21 @@ func GenerateCondition(from string) (json string, err error) {
 	return generateJson(logicalUnit)
 }
 
+// TODO 校验 来源字符串
+// 校验1. 括号数量
+// 校验2. 括号顺序
+// 校验3. 括号中有值
+func validateText(from string) error {
+	return nil
+}
+
 // 生成逻辑表达式对象
 // 先递归的解析为栈组
 // 在同一层级的栈组中根据存在的优先级生成对象
 // 再递归的返还生成的逻辑组对象到最高层
 func generateLogicalGroupFromText(from string) (LogicalGroup, error) {
 
-	// 解析为栈组
+	// 解析为栈、】0-----0
 	stackGroup := getStackGroup(from)
 	fmt.Println(stackGroup.Stacks)
 
@@ -119,6 +130,7 @@ func generateJson(logicalUnit LogicalGroup) (string, error) {
 
 // 生成对象
 // 优先级：组 > ! > && > ||
+// 会抛出panic
 func newLogicalGroupByStacks(group *StackGroup) *LogicalGroup {
 
 	stacks := group.Stacks
@@ -126,10 +138,7 @@ func newLogicalGroupByStacks(group *StackGroup) *LogicalGroup {
 	if len(stacks) == 1 {
 		if stacks[0].Kind == 1 {
 			// 初始化
-			current := new(LogicalGroup)
-			subUnits := make([]Unit, 0)
-			subUnits = append(subUnits, stacks[0].Unit)
-			current.Units = subUnits
+			current := newLogicGroupByStack(stacks[0])
 			return current
 		} else if stacks[0].Kind == 2 {
 			return newLogicalGroupByStacks(&stacks[0].StackGroup)
@@ -142,6 +151,18 @@ func newLogicalGroupByStacks(group *StackGroup) *LogicalGroup {
 	symbolList := group.GetPreferenceList()
 	// 根据栈组，排好序的符号列表合并栈到一条以生成逻辑运算对象
 	return mergeStack(prefList, symbolList)
+}
+
+// 从Stack创建LogicalGroup，只允许类型为Unit的创建
+func newLogicGroupByStack(stack LogicalStack) *LogicalGroup {
+	if stack.Kind != 1 {
+		panic("error Logical Group init from stack: stack type is not right")
+	}
+	current := new(LogicalGroup)
+	subUnits := make([]Unit, 0)
+	subUnits = append(subUnits, stack.Unit)
+	current.Units = subUnits
+	return current
 }
 
 // 合并栈组（StackGroup）为逻辑计算组（LogicalGroup）
@@ -268,7 +289,14 @@ func mergeStack(prefList *List, symbolList []Preference) *LogicalGroup {
 			}
 		}
 	}
-	final := prefList.headNode.Data.(Preference).Group
+	// 这里有可能是Group，但也有可能是只有一层括号的Unit
+	finalPreference := prefList.headNode.Data.(Preference)
+	var final LogicalGroup
+	if finalPreference.Group.equals(&LogicalGroup{}) {
+		final = *newLogicGroupByStack(finalPreference.Stack)
+	} else {
+		final = finalPreference.Group
+	}
 	return &final
 }
 
@@ -282,9 +310,14 @@ func addSub(prefList *List, groups *[]LogicalGroup, units *[]Unit, index int, ti
 				panic(fmt.Sprintf("expression error"))
 			} else if stackPref.Stack.Kind == 2 {
 				group := stackPref.Stack.StackGroup
-				subPrefs := group.GetPreferenceList()
+				subPreference := group.GetPreferenceList()
 				// 内层退出条件
-				*groups = append(*groups, *mergeStack(getPreListFromStacks(group.Stacks), subPrefs))
+				logicalGroup := *mergeStack(getPreListFromStacks(group.Stacks), subPreference)
+				if logicalGroup.Symbol == "" {
+					*units = append(*units, logicalGroup.Units[0])
+				} else {
+					*groups = append(*groups, logicalGroup)
+				}
 			} else {
 				*units = append(*units, stackPref.Stack.Unit)
 			}

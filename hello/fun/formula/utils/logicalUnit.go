@@ -114,3 +114,42 @@ func FindMatchBracketIndex(text string, index int) int {
 	}
 	return -1
 }
+
+func (op1 *Operator) equals(op2 *Operator) bool {
+	return op1.Symbol == op2.Symbol
+}
+
+func (u1 *Unit) equals(u2 *Unit) bool {
+	return u1.Operate.equals(&u2.Operate) && u1.Field == u2.Field && u1.Value == u2.Value
+}
+
+// 判断逻辑组是否相等
+func (lg1 *LogicalGroup) equals(lg2 *LogicalGroup) bool {
+	return lg1.Symbol == lg2.Symbol && isUnitsEquals(lg1, lg2) && isLogicalUnitsEquals(lg1, lg2)
+}
+
+func isLogicalUnitsEquals(lg1 *LogicalGroup, lg2 *LogicalGroup) bool {
+	if len(lg1.LogicalUnits) != len(lg2.LogicalUnits) {
+		return false
+	}
+	for i, unit := range lg1.LogicalUnits {
+		units := lg2.LogicalUnits
+		if !units[i].equals(&unit) {
+			return false
+		}
+	}
+	return true
+}
+
+func isUnitsEquals(lg1 *LogicalGroup, lg2 *LogicalGroup) bool {
+	if len(lg1.Units) != len(lg2.Units) {
+		return false
+	}
+	for i, unit := range lg1.Units {
+		units := lg2.Units
+		if !units[i].equals(&unit) {
+			return false
+		}
+	}
+	return true
+}
