@@ -1,44 +1,44 @@
 package utils
 
 // 运算符
-type Operator struct {
-	Symbol string
-	Type   string
+type operator struct {
+	symbol string
+	_type  string
 }
 
 // 基本逻辑运算单元，代表一个布尔值类型
-type Unit struct {
-	Field   string
-	Operate Operator
-	Value   string `json:"value"`
+type unit struct {
+	field   string
+	operate operator
+	value   string
 }
 
 // 描述一组逻辑运算关系，在该组中，逻辑运算符是一样的，表示同一优先级的运算
 // 基本单位可以是Unit或是Logical
 // ! > && > ||
 // ! 只能跟一个Unit或LogicalGroup
-type LogicalGroup struct {
-	Operator
-	Units        []Unit
-	LogicalUnits []LogicalGroup
+type logicalGroup struct {
+	operator
+	units        []unit
+	logicalUnits []logicalGroup
 }
 
-var operators = []Operator{
-	Eq,
-	Ne,
-	Gt,
-	Lt,
-	Gte,
-	Lte,
-	Like,
-	In,
-	NotIn,
-	And,
-	Or,
-	Not,
-	LeftBracket,
-	RightBracket,
-	Null,
+var operators = []operator{
+	eq,
+	ne,
+	gt,
+	lt,
+	gte,
+	lte,
+	like,
+	in,
+	notIn,
+	and,
+	or,
+	not,
+	leftBracket,
+	rightBracket,
+	null,
 }
 
 const (
@@ -48,40 +48,40 @@ const (
 )
 
 var (
-	Eq    = Operator{"=", base}
-	Ne    = Operator{"!=", base}
-	Gt    = Operator{">", base}
-	Lt    = Operator{"<", base}
-	Gte   = Operator{">=", base}
-	Lte   = Operator{"<=", base}
-	Like  = Operator{"like", base}
-	In    = Operator{"in", base}
-	NotIn = Operator{"not_in", base}
+	eq    = operator{"=", base}
+	ne    = operator{"!=", base}
+	gt    = operator{">", base}
+	lt    = operator{"<", base}
+	gte   = operator{">=", base}
+	lte   = operator{"<=", base}
+	like  = operator{"like", base}
+	in    = operator{"in", base}
+	notIn = operator{"not_in", base}
 	//
-	Not = Operator{"!", logic}
-	And = Operator{"&&", logic}
-	Or  = Operator{"||", logic}
+	not = operator{"!", logic}
+	and = operator{"&&", logic}
+	or  = operator{"||", logic}
 	//
-	LeftBracket  = Operator{"(", bracket}
-	RightBracket = Operator{")", bracket}
+	leftBracket  = operator{"(", bracket}
+	rightBracket = operator{")", bracket}
 	//
-	Null = Operator{"", ""}
+	null = operator{"", ""}
 )
 
 // 最大匹配原则，尽可能长的匹配字段或符号
 // 获取每个匹配的偏移量，选取偏移量最大的
-func matchOperate(text string, index int) Operator {
+func matchOperate(text string, index int) operator {
 
 	runes := []rune(text)
 	maxOffset := 0
-	var chosenOp Operator
+	var chosenOp operator
 	for _, operator := range operators {
-		if operator == Null {
+		if operator == null {
 			continue
 		}
-		firstChar := []rune(operator.Symbol)[0]
+		firstChar := []rune(operator.symbol)[0]
 		if firstChar == runes[index] {
-			if length := len(operator.Symbol); length > maxOffset && string(runes[index:index+length]) == operator.Symbol {
+			if length := len(operator.symbol); length > maxOffset && string(runes[index:index+length]) == operator.symbol {
 				maxOffset = length
 				chosenOp = operator
 			}
@@ -95,7 +95,7 @@ func matchOperate(text string, index int) Operator {
 func findMatchBracketIndex(text string, index int) int {
 
 	operate := matchOperate(text, index)
-	if operate.Type != bracket || operate.Symbol != "(" {
+	if operate._type != bracket || operate.symbol != "(" {
 		return -1
 	}
 	//
@@ -115,25 +115,25 @@ func findMatchBracketIndex(text string, index int) int {
 	return -1
 }
 
-func (op1 *Operator) equals(op2 *Operator) bool {
-	return op1.Symbol == op2.Symbol
+func (op1 *operator) equals(op2 *operator) bool {
+	return op1.symbol == op2.symbol
 }
 
-func (u1 *Unit) equals(u2 *Unit) bool {
-	return u1.Operate.equals(&u2.Operate) && u1.Field == u2.Field && u1.Value == u2.Value
+func (u1 *unit) equals(u2 *unit) bool {
+	return u1.operate.equals(&u2.operate) && u1.field == u2.field && u1.value == u2.value
 }
 
 // 判断逻辑组是否相等
-func (lg1 *LogicalGroup) equals(lg2 *LogicalGroup) bool {
-	return lg1.Symbol == lg2.Symbol && isUnitsEquals(lg1, lg2) && isLogicalUnitsEquals(lg1, lg2)
+func (lg1 *logicalGroup) equals(lg2 *logicalGroup) bool {
+	return lg1.symbol == lg2.symbol && isUnitsEquals(lg1, lg2) && isLogicalUnitsEquals(lg1, lg2)
 }
 
-func isLogicalUnitsEquals(lg1 *LogicalGroup, lg2 *LogicalGroup) bool {
-	if len(lg1.LogicalUnits) != len(lg2.LogicalUnits) {
+func isLogicalUnitsEquals(lg1 *logicalGroup, lg2 *logicalGroup) bool {
+	if len(lg1.logicalUnits) != len(lg2.logicalUnits) {
 		return false
 	}
-	for i, unit := range lg1.LogicalUnits {
-		units := lg2.LogicalUnits
+	for i, unit := range lg1.logicalUnits {
+		units := lg2.logicalUnits
 		if !units[i].equals(&unit) {
 			return false
 		}
@@ -141,12 +141,12 @@ func isLogicalUnitsEquals(lg1 *LogicalGroup, lg2 *LogicalGroup) bool {
 	return true
 }
 
-func isUnitsEquals(lg1 *LogicalGroup, lg2 *LogicalGroup) bool {
-	if len(lg1.Units) != len(lg2.Units) {
+func isUnitsEquals(lg1 *logicalGroup, lg2 *logicalGroup) bool {
+	if len(lg1.units) != len(lg2.units) {
 		return false
 	}
-	for i, unit := range lg1.Units {
-		units := lg2.Units
+	for i, unit := range lg1.units {
+		units := lg2.units
 		if !units[i].equals(&unit) {
 			return false
 		}

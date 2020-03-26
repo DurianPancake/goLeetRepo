@@ -16,7 +16,7 @@ func GenerateCondition(from string) (json string, err error) {
 	}
 	// 2.预处理
 	from = strings.ReplaceAll(from, " ", "")
-	fmt.Println(from)
+	//fmt.Println(from)
 
 	// 3.生成对象
 	logicalUnit, err := generateLogicalGroupFromText(from)
@@ -39,11 +39,11 @@ func validateText(from string) error {
 // 先递归的解析为栈组
 // 在同一层级的栈组中根据存在的优先级生成对象
 // 再递归的返还生成的逻辑组对象到最高层
-func generateLogicalGroupFromText(from string) (LogicalGroup, error) {
+func generateLogicalGroupFromText(from string) (logicalGroup, error) {
 
 	// 解析为栈、】0-----0
 	stackGroup := getStackGroup(from)
-	fmt.Println(stackGroup.Stacks)
+	//fmt.Println(stackGroup.stacks)
 
 	// 生成对象
 	logicalGroup := newLogicalGroupByStacks(stackGroup)
@@ -51,54 +51,54 @@ func generateLogicalGroupFromText(from string) (LogicalGroup, error) {
 }
 
 // 生成栈组
-func getStackGroup(from string) *StackGroup {
+func getStackGroup(from string) *stackGroup {
 
-	currentGroup := new(StackGroup)
-	stacks := make([]LogicalStack, 0)
+	currentGroup := new(stackGroup)
+	stacks := make([]logicalStack, 0)
 	runes := []rune(from)
 	cursor, valueStartCursor := 0, 0
 	for cursor < len(runes) {
 		operate := matchOperate(from, cursor)
-		if operate == Null {
+		if operate == null {
 			cursor++
 			continue
 		}
-		switch operate.Type {
+		switch operate._type {
 		case base:
 			// 找到基本运算符
 			if cursor == valueStartCursor {
 				panic("field not found")
 			}
 			field := string(runes[valueStartCursor:cursor])
-			valueIndex := cursor + len(operate.Symbol)
+			valueIndex := cursor + len(operate.symbol)
 			var nextCursor int
 			for nextCursor = valueIndex; nextCursor < len(runes); nextCursor++ {
 				op := matchOperate(from, nextCursor)
-				if op != Null {
+				if op != null {
 					break
 				}
 			}
 			value := string(runes[valueIndex:nextCursor])
-			stacks = append(stacks, LogicalStack{
-				Kind:     1,
-				Operator: Operator{},
-				Unit: Unit{
-					Field:   field,
-					Operate: operate,
-					Value:   value,
+			stacks = append(stacks, logicalStack{
+				kind:     1,
+				operator: operator{},
+				unit: unit{
+					field:   field,
+					operate: operate,
+					value:   value,
 				},
-				StackGroup: StackGroup{},
+				stackGroup: stackGroup{},
 			})
 			cursor, valueStartCursor = nextCursor, nextCursor
 
 		case logic:
 			// 找到逻辑运算符
-			cursor += len(operate.Symbol)
-			stacks = append(stacks, LogicalStack{
-				Kind:       0,
-				Operator:   operate,
-				Unit:       Unit{},
-				StackGroup: StackGroup{},
+			cursor += len(operate.symbol)
+			stacks = append(stacks, logicalStack{
+				kind:       0,
+				operator:   operate,
+				unit:       unit{},
+				stackGroup: stackGroup{},
 			})
 			valueStartCursor = cursor
 
@@ -106,24 +106,24 @@ func getStackGroup(from string) *StackGroup {
 			// 找到括号
 			nextCursor := findMatchBracketIndex(from, cursor) + 1
 			subStr := string(runes[cursor+1 : nextCursor-1])
-			fmt.Println(subStr)
+			//fmt.Println(subStr)
 			group := getStackGroup(subStr)
-			stacks = append(stacks, LogicalStack{
-				Kind:       2,
-				Operator:   Operator{},
-				Unit:       Unit{},
-				StackGroup: *group,
+			stacks = append(stacks, logicalStack{
+				kind:       2,
+				operator:   operator{},
+				unit:       unit{},
+				stackGroup: *group,
 			})
 			cursor, valueStartCursor = nextCursor, nextCursor
 		}
 	}
-	currentGroup.Stacks = stacks
+	currentGroup.stacks = stacks
 	return currentGroup
 }
 
 // 生成JSON表达式
 // TODO 暂定生成
-func generateJson(logicalUnit LogicalGroup) (string, error) {
+func generateJson(logicalUnit logicalGroup) (string, error) {
 	marshal, err := json.Marshal(logicalUnit)
 	return string(marshal), err
 }
@@ -131,49 +131,49 @@ func generateJson(logicalUnit LogicalGroup) (string, error) {
 // 生成对象
 // 优先级：组 > ! > && > ||
 // 会抛出panic
-func newLogicalGroupByStacks(group *StackGroup) *LogicalGroup {
+func newLogicalGroupByStacks(group *stackGroup) *logicalGroup {
 
-	stacks := group.Stacks
+	stacks := group.stacks
 	// 最简情况
 	if len(stacks) == 1 {
-		if stacks[0].Kind == 1 {
+		if stacks[0].kind == 1 {
 			// 初始化
 			current := newLogicGroupByStack(stacks[0])
 			return current
-		} else if stacks[0].Kind == 2 {
-			return newLogicalGroupByStacks(&stacks[0].StackGroup)
+		} else if stacks[0].kind == 2 {
+			return newLogicalGroupByStacks(&stacks[0].stackGroup)
 		}
 		panic("expression error")
 	}
 	// 封装一层栈组，因为栈的入栈顺序有意义
 	prefList := getPreListFromStacks(stacks)
 	// 获取运算符
-	symbolList := group.GetPreferenceList()
+	symbolList := group.getPreferenceList()
 	// 根据栈组，排好序的符号列表合并栈到一条以生成逻辑运算对象
 	return mergeStack(prefList, symbolList)
 }
 
 // 从Stack创建LogicalGroup，只允许类型为Unit的创建
-func newLogicGroupByStack(stack LogicalStack) *LogicalGroup {
-	if stack.Kind != 1 {
-		panic("error Logical Group init from stack: stack type is not right")
+func newLogicGroupByStack(stack logicalStack) *logicalGroup {
+	if stack.kind != 1 {
+		panic("error Logical group init from stack: stack type is not right")
 	}
-	current := new(LogicalGroup)
-	subUnits := make([]Unit, 0)
-	subUnits = append(subUnits, stack.Unit)
-	current.Units = subUnits
+	current := new(logicalGroup)
+	subUnits := make([]unit, 0)
+	subUnits = append(subUnits, stack.unit)
+	current.units = subUnits
 	return current
 }
 
-// 合并栈组（StackGroup）为逻辑计算组（LogicalGroup）
+// 合并栈组（stackGroup）为逻辑计算组（logicalGroup）
 // 根据运算符列表，找出同一类型的运算符，它们具有相同的优先级
 // 如果这些运算符在计算位置上连续，连续的部分可以合成一个组，不连续的部分自成一组
-// 运算符运算会消耗基本单元（Unit）和组（StackGroup）和它自身（Symbol）
-// 因此链表会因为计算不断产生新组（LogicalGroup），统一用Preference封装起来
-// 同时栈组（StackGroup）也会不断减少
+// 运算符运算会消耗基本单元（unit）和组（stackGroup）和它自身（symbol）
+// 因此链表会因为计算不断产生新组（logicalGroup），统一用Preference封装起来
+// 同时栈组（stackGroup）也会不断减少
 // 如果有下一优先级的运算符列表，重复以上过程
-// 当运算符消耗完毕时，计算式只会留下一组（LogicalGroup）将其返回
-func mergeStack(prefList *List, symbolList []Preference) *LogicalGroup {
+// 当运算符消耗完毕时，计算式只会留下一组（logicalGroup）将其返回
+func mergeStack(prefList *List, symbolList []preference) *logicalGroup {
 
 	// 同类型计算符
 	for prefList.Length() != 1 {
@@ -183,9 +183,9 @@ func mergeStack(prefList *List, symbolList []Preference) *LogicalGroup {
 			symbolList = symbolList[pos:]
 		}
 
-		prefMap := make(map[int]Preference, 0)
+		prefMap := make(map[int]preference, 0)
 		for _, po := range samePos {
-			prefMap[po.Index] = po
+			prefMap[po.index] = po
 		}
 		// 分组
 		// map[分组][序号集]
@@ -199,28 +199,28 @@ func mergeStack(prefList *List, symbolList []Preference) *LogicalGroup {
 			}
 			bigOrder := len(orders) - 1
 			if bigOrder < 0 {
-				orders = append(orders, symbol.Index)
+				orders = append(orders, symbol.index)
 				seriesGroup[lastIndex] = orders
 				continue
 			}
-			isFarAway := orders[bigOrder]-symbol.Index > 2
+			isFarAway := orders[bigOrder]-symbol.index > 2
 			if !isFarAway {
-				orders = append(orders, symbol.Index)
+				orders = append(orders, symbol.index)
 				seriesGroup[lastIndex] = orders
 			} else if isFarAway {
 				lastIndex++
 				nextGroup := make([]int, 0)
-				nextGroup = append(nextGroup, symbol.Index)
+				nextGroup = append(nextGroup, symbol.index)
 				seriesGroup[lastIndex] = nextGroup
 			}
 		}
 		// 根据运算规则合并产生新组，一个组内为同一类型
 		for _, orders := range seriesGroup {
 			//
-			subUnits := make([]Unit, 0)
-			subGroups := make([]LogicalGroup, 0)
-			logicUnit := LogicalGroup{
-				Operator: Operator{Symbol: symbol},
+			subUnits := make([]unit, 0)
+			subGroups := make([]logicalGroup, 0)
+			logicUnit := logicalGroup{
+				operator: operator{symbol: symbol},
 			}
 
 			switch symbol {
@@ -232,7 +232,7 @@ func mergeStack(prefList *List, symbolList []Preference) *LogicalGroup {
 					// 拿到下一个栈帧
 					cur := prefList.Head()
 					index := 0
-					for cur.Data.(Preference).Index != order {
+					for cur.Data.(preference).index != order {
 						cur = cur.Next
 						index++
 					}
@@ -242,16 +242,16 @@ func mergeStack(prefList *List, symbolList []Preference) *LogicalGroup {
 				}
 				// 添加方法
 				addSub(prefList, &subGroups, &subUnits, minIndex+1, len(orders))
-				logicUnit.Units = subUnits
-				logicUnit.LogicalUnits = subGroups
+				logicUnit.units = subUnits
+				logicUnit.logicalUnits = subGroups
 				// 删除和添加
 				for i := 0; i < len(orders)*2; i++ {
 					prefList.RemoveAtIndex(minIndex)
 				}
-				prefList.Insert(Preference{
-					Index: minIndex,
-					Kind:  1,
-					Group: logicUnit,
+				prefList.Insert(preference{
+					index: minIndex,
+					kind:  1,
+					group: logicUnit,
 				}, minIndex)
 			case "&&":
 				fallthrough
@@ -263,7 +263,7 @@ func mergeStack(prefList *List, symbolList []Preference) *LogicalGroup {
 					// 拿到下一个栈帧
 					cur := prefList.Head()
 					index := 0
-					for cur.Data.(Preference).Index != order {
+					for cur.Data.(preference).index != order {
 						cur = cur.Next
 						index++
 					}
@@ -274,55 +274,55 @@ func mergeStack(prefList *List, symbolList []Preference) *LogicalGroup {
 				// 添加方法
 				alternativePos := minIndex - 1
 				addSub(prefList, &subGroups, &subUnits, alternativePos, len(orders)+1)
-				logicUnit.Units = subUnits
-				logicUnit.LogicalUnits = subGroups
+				logicUnit.units = subUnits
+				logicUnit.logicalUnits = subGroups
 				// 删除和添加
 				for i := 0; i < len(orders)*2+1; i++ {
 					prefList.RemoveAtIndex(alternativePos)
 				}
-				prefList.Insert(Preference{
-					Index: alternativePos,
-					Kind:  1,
-					Group: logicUnit,
+				prefList.Insert(preference{
+					index: alternativePos,
+					kind:  1,
+					group: logicUnit,
 				}, alternativePos)
 			default:
 			}
 		}
 	}
 	// 这里有可能是Group，但也有可能是只有一层括号的Unit
-	finalPreference := prefList.headNode.Data.(Preference)
-	var final LogicalGroup
-	if finalPreference.Group.equals(&LogicalGroup{}) {
-		final = *newLogicGroupByStack(finalPreference.Stack)
+	finalPreference := prefList.headNode.Data.(preference)
+	var final logicalGroup
+	if finalPreference.group.equals(&logicalGroup{}) {
+		final = *newLogicGroupByStack(finalPreference.stack)
 	} else {
-		final = finalPreference.Group
+		final = finalPreference.group
 	}
 	return &final
 }
 
 // 添加元素
-func addSub(prefList *List, groups *[]LogicalGroup, units *[]Unit, index int, times int) {
+func addSub(prefList *List, groups *[]logicalGroup, units *[]unit, index int, times int) {
 	cur := prefList.get(index)
 	for i := 0; i < times; i++ {
-		stackPref := cur.Data.(Preference)
-		if stackPref.Kind == 0 {
-			if stackPref.Stack.Kind == 0 {
+		stackPref := cur.Data.(preference)
+		if stackPref.kind == 0 {
+			if stackPref.stack.kind == 0 {
 				panic(fmt.Sprintf("expression error"))
-			} else if stackPref.Stack.Kind == 2 {
-				group := stackPref.Stack.StackGroup
-				subPreference := group.GetPreferenceList()
+			} else if stackPref.stack.kind == 2 {
+				group := stackPref.stack.stackGroup
+				subPreference := group.getPreferenceList()
 				// 内层退出条件
-				logicalGroup := *mergeStack(getPreListFromStacks(group.Stacks), subPreference)
-				if logicalGroup.Symbol == "" {
-					*units = append(*units, logicalGroup.Units[0])
+				logicalGroup := *mergeStack(getPreListFromStacks(group.stacks), subPreference)
+				if logicalGroup.symbol == "" {
+					*units = append(*units, logicalGroup.units[0])
 				} else {
 					*groups = append(*groups, logicalGroup)
 				}
 			} else {
-				*units = append(*units, stackPref.Stack.Unit)
+				*units = append(*units, stackPref.stack.unit)
 			}
-		} else if stackPref.Kind == 1 {
-			*groups = append(*groups, stackPref.Group)
+		} else if stackPref.kind == 1 {
+			*groups = append(*groups, stackPref.group)
 		}
 		if i < times-1 {
 			cur = cur.Next.Next
@@ -331,24 +331,24 @@ func addSub(prefList *List, groups *[]LogicalGroup, units *[]Unit, index int, ti
 }
 
 // 获取同优先级符号集合
-func getSameLevelSymbols(list []Preference) (symbol string, nextPos int, all bool) {
-	stack := list[0].Stack
-	symbol = stack.Symbol
+func getSameLevelSymbols(list []preference) (symbol string, nextPos int, all bool) {
+	stack := list[0].stack
+	symbol = stack.symbol
 	for i, preference := range list {
-		if preference.Stack.Symbol != symbol {
+		if preference.stack.symbol != symbol {
 			return symbol, i, false
 		}
 	}
 	return symbol, len(list), true
 }
 
-func getPreListFromStacks(stacks []LogicalStack) *List {
+func getPreListFromStacks(stacks []logicalStack) *List {
 	prefList := new(List)
 	for i, stack := range stacks {
-		prefList.Append(Preference{
-			Index: i,
-			Kind:  0,
-			Stack: stack,
+		prefList.Append(preference{
+			index: i,
+			kind:  0,
+			stack: stack,
 		})
 	}
 	return prefList
