@@ -2,12 +2,13 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 )
 
 //
-func GenerateCondition(from string) (json string, err error) {
+func GenerateCondition(from string) (str string, err error) {
 
 	//1.校验
 	err = validateText(from)
@@ -16,7 +17,6 @@ func GenerateCondition(from string) (json string, err error) {
 	}
 	// 2.预处理
 	from = strings.ReplaceAll(from, " ", "")
-	//fmt.Println(from)
 
 	// 3.生成对象
 	logicalUnit, err := generateLogicalGroupFromText(from)
@@ -24,7 +24,12 @@ func GenerateCondition(from string) (json string, err error) {
 		return "", err
 	}
 	// 4.生成JSON字符串
-	return generateJson(logicalUnit)
+	model := generateExportModel(logicalUnit)
+	bytes, err := json.Marshal(model)
+	if err != nil {
+		return "{}", errors.New("生成Json异常")
+	}
+	return string(bytes), err
 }
 
 // TODO 校验 来源字符串
@@ -119,13 +124,6 @@ func getStackGroup(from string) *stackGroup {
 	}
 	currentGroup.stacks = stacks
 	return currentGroup
-}
-
-// 生成JSON表达式
-// TODO 暂定生成
-func generateJson(logicalUnit logicalGroup) (string, error) {
-	marshal, err := json.Marshal(logicalUnit)
-	return string(marshal), err
 }
 
 // 生成对象
@@ -352,4 +350,43 @@ func getPreListFromStacks(stacks []logicalStack) *List {
 		})
 	}
 	return prefList
+}
+
+// 生成JSON表达式
+func generateExportModel(logicalUnit logicalGroup) interface{} {
+
+	// 最简情况
+	if logicalUnit.operator.symbol == "" {
+		u := logicalUnit.units[0]
+		return generateJsonFromUnit(u)
+	}
+	conditions := make([]interface{}, 0)
+	// units的部分
+	units := logicalUnit.units
+	for _, u := range units {
+		jsonFromUnit := generateJsonFromUnit(u)
+		conditions = append(conditions, jsonFromUnit)
+	}
+	// logicalGroup的部分
+	if logicalUnits := logicalUnit.logicalUnits; logicalUnits != nil && len(logicalUnits) > 0 {
+		for _, group := range logicalUnits {
+			groupJson := generateExportModel(group)
+			conditions = append(conditions, groupJson)
+		}
+	}
+
+	group := UnitGroup{
+		Type:       logs[logicalUnit.operator.symbol],
+		Conditions: conditions,
+	}
+	return group
+}
+
+func generateJsonFromUnit(u unit) Unit {
+	return Unit{
+		Field:    u.field,
+		Operator: u.operate.symbol,
+		Value:    u.value,
+		Type:     condition,
+	}
 }

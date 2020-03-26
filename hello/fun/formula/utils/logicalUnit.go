@@ -10,7 +10,7 @@ type operator struct {
 type unit struct {
 	field   string
 	operate operator
-	value   string
+	value   interface{}
 }
 
 // 描述一组逻辑运算关系，在该组中，逻辑运算符是一样的，表示同一优先级的运算
