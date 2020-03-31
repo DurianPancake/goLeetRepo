@@ -3,7 +3,7 @@ package utils
 // 解析时运算栈
 type logicalStack struct {
 	kind     int // 0\1\2 依次表示Operator、unit、logicalGroup
-	operator     // 只会是逻辑运算符
+	operator     // 在logicalStack中operator属性只会是逻辑运算符
 	unit
 	stackGroup
 }
@@ -15,7 +15,7 @@ type stackGroup struct {
 
 type preference struct {
 	index int
-	kind  int // 0\1 表示Stack group
+	kind  int // 0\1 表示Stack、group
 	stack logicalStack
 	group logicalGroup
 }
@@ -54,6 +54,7 @@ func (sg *stackGroup) getPreferenceList() []preference {
 	return ps
 }
 
+// 这里的数字常量代表着运算符的优先顺序
 var symbols = map[string]int{
 	not.symbol: 2,
 	and.symbol: 1,

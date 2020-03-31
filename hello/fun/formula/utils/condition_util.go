@@ -7,7 +7,12 @@ import (
 	"strings"
 )
 
-//
+// 将形如"A=3 &&( B!=4 || C>5)"的逻辑字符串解析并生成逻辑关系运算组，以json对象字符串的方式返回
+// from: 输入的公式字符串
+// return:
+// str: 返回的json化的格式字符串
+// err: 在公式字符串的校验、预处理、拆解或组装对象、生成JSON对象的过程中，都有可能出现因
+// Liuluhao
 func GenerateCondition(from string) (str string, err error) {
 
 	//1.校验
@@ -172,13 +177,14 @@ func newLogicGroupByStack(stack logicalStack) *logicalGroup {
 }
 
 // 合并栈组（stackGroup）为逻辑计算组（logicalGroup）
+// 此时用Preference的链表表示整个运算链，一个Preference可以表示符号或运算单元或运算组
 // 根据运算符列表，找出同一类型的运算符，它们具有相同的优先级
 // 如果这些运算符在计算位置上连续，连续的部分可以合成一个组，不连续的部分自成一组
-// 运算符运算会消耗基本单元（unit）和组（stackGroup）和它自身（symbol）
-// 因此链表会因为计算不断产生新组（logicalGroup），统一用Preference封装起来
+// 运算符运算会消耗基本单元（unit）或组（stackGroup）或两者都有，另外也包括它自身（symbol）
+// 链表会因为计算不断产生新组（logicalGroup），再将其封装成Preference
 // 同时栈组（stackGroup）也会不断减少
 // 如果有下一优先级的运算符列表，重复以上过程
-// 当运算符消耗完毕时，计算式只会留下一组（logicalGroup）将其返回
+// 当运算符消耗完毕时，运算链只会留下一个Preference，即计算式也只会留下一组（logicalGroup）将其返回
 func mergeStack(prefList *List, symbolList []preference) *logicalGroup {
 
 	// 同类型计算符
@@ -230,7 +236,7 @@ func mergeStack(prefList *List, symbolList []preference) *logicalGroup {
 			}
 
 			switch symbol {
-			case "!":
+			case not.symbol:
 				// 非运算只取order后一位
 				// 一个组的非运算涉及到的stack个数为 len(order) * 2个
 				minIndex := prefList.Length()
@@ -259,9 +265,9 @@ func mergeStack(prefList *List, symbolList []preference) *logicalGroup {
 					kind:  1,
 					group: logicUnit,
 				}, minIndex)
-			case "&&":
+			case and.symbol:
 				fallthrough
-			case "||":
+			case or.symbol:
 				// 与运算和或运算需要取前一位和后一位
 				// 一个组的非运算涉及到的stack个数为 len(order)*2 + 1个
 				minIndex := prefList.Length()
@@ -319,7 +325,7 @@ func addSub(prefList *List, groups *[]logicalGroup, units *[]unit, index int, ti
 				subPreference := group.getPreferenceList()
 				// 内层退出条件
 				logicalGroup := *mergeStack(getPreListFromStacks(group.stacks), subPreference)
-				if logicalGroup.symbol == "" {
+				if logicalGroup.symbol == null.symbol {
 					*units = append(*units, logicalGroup.units[0])
 				} else {
 					*groups = append(*groups, logicalGroup)
@@ -364,7 +370,7 @@ func getPreListFromStacks(stacks []logicalStack) *List {
 func generateExportModel(logicalUnit logicalGroup) interface{} {
 
 	// 最简情况
-	if logicalUnit.operator.symbol == "" {
+	if logicalUnit.operator.symbol == null.symbol {
 		u := logicalUnit.units[0]
 		return generateJsonFromUnit(u)
 	}

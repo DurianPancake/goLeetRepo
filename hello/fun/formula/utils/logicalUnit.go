@@ -1,5 +1,38 @@
 package utils
 
+const (
+	base    = "base"
+	logic   = "logic"
+	bracket = "bracket"
+)
+
+// 所有符号的定义
+// symbol：代表着可以在公式中识别的符号字符串。
+// 可以在此处替换字符串而不会影响程序运行，symbol不建议使用空格，因为与预处理方式冲突
+// 但可能会存在的影响例如将'&&'改为'&'，公式中如果存在&&的运算符将会识别为连续两个'&'与运算符
+// type：代表符号类型
+// TODO:将符号字符串提供可配置化
+var (
+	eq    = operator{"=", base}
+	ne    = operator{"!=", base}
+	gt    = operator{">", base}
+	lt    = operator{"<", base}
+	gte   = operator{">=", base}
+	lte   = operator{"<=", base}
+	like  = operator{"like", base}
+	in    = operator{"in", base}
+	notIn = operator{"not_in", base}
+	//
+	not = operator{"!", logic}
+	and = operator{"&&", logic}
+	or  = operator{"||", logic}
+	//
+	leftBracket  = operator{"(", bracket}
+	rightBracket = operator{")", bracket}
+	//
+	null = operator{"", ""}
+)
+
 // 运算符
 type operator struct {
 	symbol string
@@ -16,7 +49,7 @@ type unit struct {
 // 描述一组逻辑运算关系，在该组中，逻辑运算符是一样的，表示同一优先级的运算
 // 基本单位可以是Unit或是Logical
 // ! > && > ||
-// ! 只能跟一个Unit或LogicalGroup
+// !运算符只能允许存在一个Unit或LogicalGroup
 type logicalGroup struct {
 	operator
 	units        []unit
@@ -40,33 +73,6 @@ var operators = []operator{
 	rightBracket,
 	null,
 }
-
-const (
-	base    = "base"
-	logic   = "logic"
-	bracket = "bracket"
-)
-
-var (
-	eq    = operator{"=", base}
-	ne    = operator{"!=", base}
-	gt    = operator{">", base}
-	lt    = operator{"<", base}
-	gte   = operator{">=", base}
-	lte   = operator{"<=", base}
-	like  = operator{"like", base}
-	in    = operator{"in", base}
-	notIn = operator{"not_in", base}
-	//
-	not = operator{"!", logic}
-	and = operator{"&&", logic}
-	or  = operator{"||", logic}
-	//
-	leftBracket  = operator{"(", bracket}
-	rightBracket = operator{")", bracket}
-	//
-	null = operator{"", ""}
-)
 
 // 最大匹配原则，尽可能长的匹配字段或符号
 // 获取每个匹配的偏移量，选取偏移量最大的
@@ -95,17 +101,32 @@ func matchOperate(text string, index int) operator {
 func findMatchBracketIndex(text string, index int) int {
 
 	operate := matchOperate(text, index)
-	if operate._type != bracket || operate.symbol != "(" {
+	if operate._type != bracket || operate.symbol != leftBracket.symbol {
 		return -1
 	}
 	//
 	count := 1
 	runes := []rune(text)
+	leftSymbolChs := []rune(leftBracket.symbol)
+	rightSymbolChs := []rune(rightBracket.symbol)
 	for i := index + 1; i < len(runes); i++ {
-		if runes[i] == '(' {
+		var leftJudge, rightJudge = true, true
+		for m := 0; m < len(leftSymbolChs); m++ {
+			if i+m == len(runes) || runes[i+m] != leftSymbolChs[m] {
+				leftJudge = false
+				break
+			}
+		}
+		if leftJudge {
 			count += 1
 		}
-		if runes[i] == ')' {
+		for m := 0; m < len(rightSymbolChs); m++ {
+			if i+m == len(runes) || runes[i+m] != rightSymbolChs[m] {
+				rightJudge = false
+				break
+			}
+		}
+		if rightJudge {
 			count -= 1
 			if count == 0 {
 				return i
