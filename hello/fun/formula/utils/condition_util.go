@@ -17,7 +17,6 @@ func GenerateCondition(from string) (str string, err error) {
 	}
 	// 2.预处理
 	from = strings.ReplaceAll(from, " ", "")
-
 	// 3.生成对象
 	logicalUnit, err := generateLogicalGroupFromText(from)
 	if err != nil {
@@ -27,7 +26,7 @@ func GenerateCondition(from string) (str string, err error) {
 	model := generateExportModel(logicalUnit)
 	bytes, err := json.Marshal(model)
 	if err != nil {
-		return "{}", errors.New("生成Json异常")
+		return "{}", errors.New("生成Json时异常")
 	}
 	return string(bytes), err
 }
@@ -44,13 +43,22 @@ func validateText(from string) error {
 // 先递归的解析为栈组
 // 在同一层级的栈组中根据存在的优先级生成对象
 // 再递归的返还生成的逻辑组对象到最高层
-func generateLogicalGroupFromText(from string) (logicalGroup, error) {
+func generateLogicalGroupFromText(from string) (lg logicalGroup, err error) {
 
 	// 解析为栈、】0-----0
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("公式提取错误:%s", r))
+		}
+	}()
 	stackGroup := getStackGroup(from)
-	//fmt.Println(stackGroup.stacks)
 
 	// 生成对象
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprintf("公式解析错误:%s", r))
+		}
+	}()
 	logicalGroup := newLogicalGroupByStacks(stackGroup)
 	return *logicalGroup, nil
 }
