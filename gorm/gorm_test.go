@@ -17,6 +17,7 @@ func initDb() *gorm.DB {
 	}
 	// 取消复数形式的表名
 	db.SingularTable(true)
+	db.AutoMigrate(&User{})
 	return db
 }
 
@@ -83,4 +84,20 @@ func TestQuery(t *testing.T) {
 	// 模糊查询
 	db.Where("username like ?", "%ba%").Find(&users)
 	fmt.Println(users)
+}
+
+func TestPartlyQuery(t *testing.T) {
+	db := initDb()
+	defer db.Close()
+
+	user := User{
+		Model: gorm.Model{
+			ID: 1,
+		},
+	}
+
+	var s string
+	db = db.Model(User{}).Select("username").First(&user).Scan(&s)
+	fmt.Println(s)
+	fmt.Println(user)
 }
