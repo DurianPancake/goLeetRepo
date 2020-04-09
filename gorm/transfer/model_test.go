@@ -1,8 +1,11 @@
 package transfer
 
 import (
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"goSecond/gorm/transfer/model"
 	"log"
+	"testing"
 )
 
 func initDb() *gorm.DB {
@@ -13,6 +16,11 @@ func initDb() *gorm.DB {
 	}
 	// 取消复数形式的表名
 	db.SingularTable(true)
-	db.AutoMigrate(&User{})
+	db.AutoMigrate(&model.FormData{})
+	db.AutoMigrate(&model.Data{})
 	return db
+}
+
+func TestT(t *testing.T) {
+	initDb()
 }
